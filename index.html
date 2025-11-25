@@ -2,33 +2,68 @@
 <html lang="lt">
 <head>
     <meta charset="UTF-8">
-    <title>Spalvos registracija</title>
+    <title>Spalvos pasirinkimas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        #msg {
+            margin-top: 20px;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
 </head>
 <body>
-    <h2>Įrašykite savo el. paštą</h2>
-
+    <h2>Gaukite atsitiktinę spalvą!</h2>
     <form id="form">
-        <input type="email" id="email" placeholder="El. paštas" required>
+        <input type="email" id="email" placeholder="Įrašykite savo el. paštą" required>
         <button type="submit">Gauti spalvą</button>
     </form>
-
     <p id="msg"></p>
 
     <script>
         const form = document.getElementById("form");
+        const msg = document.getElementById("msg");
 
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const email = document.getElementById("email").value;
 
-            const res = await fetch("/api/getColor", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ email })
-            });
+            msg.style.color = "blue";
+            msg.textContent = "Siunčiama spalva…";
 
-            const data = await res.json();
-            document.getElementById("msg").innerText = data.message;
+            try {
+                const res = await fetch("/api/getColor", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+
+                if (data.message.includes("išsiųsta")) {
+                    msg.style.color = "green";
+                    msg.textContent = "Spalva išrinkta! Patikrinkite savo el. paštą.";
+                } else {
+                    msg.style.color = "red";
+                    msg.textContent = data.message; // pvz., „Nebėra laisvų spalvų!“
+                }
+
+            } catch (error) {
+                msg.style.color = "red";
+                msg.textContent = "Įvyko klaida. Bandykite dar kartą.";
+                console.error(error);
+            }
+
+            form.reset(); // išvalo email laukelį
         });
     </script>
 </body>
