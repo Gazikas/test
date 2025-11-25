@@ -2,24 +2,34 @@
 <html lang="lt">
 <head>
     <meta charset="UTF-8">
-    <title>Spalvų pasirinkimas</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Spalvos registracija</title>
 </head>
 <body>
-    <h1>Pasirinkti atsitiktinę spalvą</h1>
+    <h2>Įrašykite savo el. paštą</h2>
 
-    <div id="colors">
-        <div class="color" data-color="Raudona" style="background:#FF0000;"></div>
-        <div class="color" data-color="Geltona/Auksinė" style="background:#FFD700;"></div>
-        <div class="color" data-color="Mėlyna" style="background:#1E90FF;"></div>
-        <div class="color" data-color="Balta" style="background:#FFFFFF; border:1px solid #ccc;"></div>
-        <div class="color" data-color="Žalia" style="background:#008000;"></div>
-    </div>
+    <form id="form">
+        <input type="email" id="email" placeholder="El. paštas" required>
+        <button type="submit">Gauti spalvą</button>
+    </form>
 
-    <button id="pick">Išrink Atsitiktinę Spalvą</button>
+    <p id="msg"></p>
 
-    <div id="result"></div>
+    <script>
+        const form = document.getElementById("form");
 
-    <script src="script.js"></script>
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("email").value;
+
+            const res = await fetch("/api/getColor", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ email })
+            });
+
+            const data = await res.json();
+            document.getElementById("msg").innerText = data.message;
+        });
+    </script>
 </body>
 </html>
