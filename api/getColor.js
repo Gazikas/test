@@ -7,21 +7,20 @@ export default async function handler(req, res) {
   }
 
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: "El. paštas privalomas" });
-  }
+  if (!email) return res.status(400).json({ message: "El. paštas privalomas" });
 
   try {
-    // gauti spalvų sąrašą iš KV
+    // Saugus kv.get
     let colors = [];
     try {
       const data = await kv.get("colors");
-      if (data) colors = data;
+      if (Array.isArray(data)) colors = data;
     } catch (err) {
       console.error("KV get error:", err);
+      colors = [];
     }
 
-    // jei pirmas deploy arba KV tuščias – sukurti spalvų sąrašą
+    // Jei tuščias – inicijuojame spalvas
     if (!colors || colors.length === 0) {
       colors = [
         { name: "Raudona", used: false },
@@ -30,17 +29,13 @@ export default async function handler(req, res) {
         { name: "Balta", used: false },
         { name: "Žalia", used: false }
       ];
-      await kv.set("colors", colors);
     }
 
-    // rasti nepanaudotą spalvą
+    // Rasti nepanaudotą spalvą
     const unused = colors.find(c => !c.used);
+    if (!unused) return res.json({ message: "Nebėra laisvų spalvų!" });
 
-    if (!unused) {
-      return res.json({ message: "Nebėra laisvų spalvų!" });
-    }
-
-    // siųsti spalvą el. paštu per Brevo API
+    // Siųsti spalvą el. paštu per Brevo API
     const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
@@ -61,12 +56,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ message: "Nepavyko išsiųsti el. pašto" });
     }
 
-    // pažymėti spalvą kaip panaudotą
+    // Pažymėti spalvą kaip panaudotą
     unused.used = true;
     await kv.set("colors", colors);
 
     return res.json({ message: "Spalva išrinkta! Patikrinkite savo el. paštą." });
-
   } catch (error) {
     console.error("Server error:", error);
     return res.status(500).json({ message: "Įvyko klaida, bandykite dar kartą." });
