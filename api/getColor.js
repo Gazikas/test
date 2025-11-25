@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
@@ -8,17 +7,29 @@ export default async function handler(req, res) {
 
     const { email } = req.body;
 
-    const filePath = path.join(process.cwd(), "api", "colors.json");
-    let colors = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    // gauti spalvų sąrašą iš KV
+    let colors = await kv.get("colors");
 
-    // rasti spalvą, kuri dar nenaudota
+    // jei pirmas deploy – sukurti spalvų sąrašą
+    if (!colors) {
+        colors = [
+            { name: "Raudona", used: false },
+            { name: "Geltona/Auksinė", used: false },
+            { name: "Mėlyna", used: false },
+            { name: "Balta", used: false },
+            { name: "Žalia", used: false }
+        ];
+        await kv.set("colors", colors);
+    }
+
+    // rasti nepanaudotą spalvą
     const unused = colors.find(c => !c.used);
 
     if (!unused) {
         return res.json({ message: "Nebėra laisvų spalvų!" });
     }
 
-    // siųsti email su Brevo API
+    // siunčiam email
     await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
@@ -33,9 +44,9 @@ export default async function handler(req, res) {
         })
     });
 
-    // pažymėti kaip panaudota
+    // pažymėti spalvą kaip panaudotą
     unused.used = true;
-    fs.writeFileSync(filePath, JSON.stringify(colors, null, 2));
+    await kv.set("colors", colors);
 
-    res.json({ message: "Spalva išsiųsta!" });
+    res.json({ message: "Spalva išsiųsta į jūsų el. paštą!" });
 }
